@@ -1,10 +1,10 @@
 # M32 Google Calendar Integration Service
 
-Backend microservice that connects to Google Calendar via OAuth2, syncs events into a local SQLite database, exposes REST endpoints for querying/creating events, and handles webhook notifications for near-real-time updates.
+Backend microservice that connects to Google Calendar via OAuth2, syncs events into a PostgreSQL database (local or hosted on Render), exposes REST endpoints for querying/creating events, and handles webhook notifications for near-real-time updates.
 
 ## Highlights
 
-- OAuth2 authorization code flow with offline refresh tokens stored in SQLite via Prisma.
+- OAuth2 authorization code flow with offline refresh tokens stored in Postgres via Prisma.
 - Idempotent `/sync/events` endpoint pulls paginated Google Calendar events, retries on 429/5xx with exponential backoff, and upserts them locally.
 - Webhook receiver (`/webhook/google`) validates Google channel tokens, logs payloads, and triggers background syncs.
 - REST API for listing and creating events from the local cache (`/events`), including optional filters and Google Meet link creation.
@@ -27,7 +27,7 @@ Backend microservice that connects to Google Calendar via OAuth2, syncs events i
 └────────────┬───────────────┘
              │ Prisma ORM
              ▼
-        SQLite database
+        PostgreSQL database
 ```
 
 ### Data Model
@@ -65,16 +65,16 @@ Backend microservice that connects to Google Calendar via OAuth2, syncs events i
 | Variable | Description |
 | --- | --- |
 | `PORT` | HTTP port (default 4000) |
-| `DATABASE_URL` | SQLite connection string. Use `file:./dev.db` to store `prisma/dev.db`. |
+| `DATABASE_URL` | Postgres connection string (`postgresql://user:password@host:port/db?schema=public`). |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth credentials from Google Cloud |
 | `GOOGLE_REDIRECT_URI` | Must match the authorized redirect |
 | `DEFAULT_CALENDAR_ID` | Defaults to `primary` |
 | `GOOGLE_WEBHOOK_CALLBACK_URL` | Public HTTPS URL for Google push notifications (ngrok, Render, etc.) |
 | `GOOGLE_WEBHOOK_VERIFICATION_TOKEN` | Optional shared secret to validate webhook requests |
 
-5. Create the SQLite database & Prisma client
+5. Apply the Prisma schema (creates tables in your Postgres database)
    ```bash
-   npm run prisma:migrate
+   npx prisma migrate dev
    ```
 
 6. Run the service
@@ -169,7 +169,7 @@ curl -X POST http://localhost:4000/webhook/google/watch \
 
 ## Reliability Notes
 
-- Retries & rate limits: Calendar API calls are wrapped with `p-retry` (exponential backoff) for 429/5xx responses.
+- Retries & rate limits: Calendar API calls use a custom exponential backoff helper for retryable 408/425/429/5xx responses.
 - Idempotent persistence: Events are upserted on `(providerEventId, calendarId)` ensuring repeated syncs/webhooks don't create duplicates.
 - Structured logging: Pino logs (JSON in prod, pretty in dev) for easier observability.
 - Webhook validation: Optional shared secret via `GOOGLE_WEBHOOK_VERIFICATION_TOKEN` plus persistent logs in `WebhookLog`.
@@ -189,7 +189,10 @@ Potential improvements if this were productionized:
 
 ## Deployment
 
-Any Node-friendly platform works (Render, Railway, Fly.io). Ensure environment variables match your deployed URL (especially webhook callback). Run `npm run build` during deployment and start with `npm start`.
+Any Node-friendly platform works (Render, Railway, Fly.io). Ensure environment variables match your deployed URL (especially webhook callback) and point `DATABASE_URL` to a managed Postgres instance. Typical Render config:
+
+- Build command: `npm install && npm run build && npx prisma migrate deploy`
+- Start command: `npm start`
 
 ---
 

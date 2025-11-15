@@ -6,10 +6,10 @@ CREATE TABLE "IntegrationAccount" (
     "accessToken" TEXT NOT NULL,
     "refreshToken" TEXT,
     "scope" TEXT,
-    "tokenExpiresAt" DATETIME,
+    "tokenExpiresAt" TIMESTAMP(3),
     "metadata" JSONB,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
@@ -23,13 +23,13 @@ CREATE TABLE "CalendarEvent" (
     "description" TEXT,
     "status" TEXT,
     "location" TEXT,
-    "startTime" DATETIME,
-    "endTime" DATETIME,
-    "updatedAtRemote" DATETIME,
+    "startTime" TIMESTAMP(3),
+    "endTime" TIMESTAMP(3),
+    "updatedAtRemote" TIMESTAMP(3),
     "hangoutLink" TEXT,
     "rawPayload" JSONB,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "CalendarEvent_integrationId_fkey" FOREIGN KEY ("integrationId") REFERENCES "IntegrationAccount" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -41,11 +41,11 @@ CREATE TABLE "CalendarWatch" (
     "calendarId" TEXT NOT NULL,
     "resourceId" TEXT,
     "integrationId" TEXT NOT NULL,
-    "expiry" DATETIME,
+    "expiry" TIMESTAMP(3),
     "status" TEXT NOT NULL DEFAULT 'active',
     "metadata" JSONB,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "CalendarWatch_integrationId_fkey" FOREIGN KEY ("integrationId") REFERENCES "IntegrationAccount" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -58,7 +58,7 @@ CREATE TABLE "WebhookLog" (
     "resourceId" TEXT,
     "integrationId" TEXT,
     "payload" JSONB,
-    "receivedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "receivedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "WebhookLog_integrationId_fkey" FOREIGN KEY ("integrationId") REFERENCES "IntegrationAccount" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
