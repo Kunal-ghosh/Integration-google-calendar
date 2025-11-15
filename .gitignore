@@ -1,0 +1,18 @@
+node_modules
+dist
+.env
+.env.local
+*.log
+tmp/
+coverage
+generated/
+prisma/dev.db
+prisma/dev.db-journal
+prisma/prisma/dev.db
+prisma/prisma/dev.db-journal
+.DS_Store
+node_modules
+# Keep environment variables out of version control
+.env
+
+/generated/prisma

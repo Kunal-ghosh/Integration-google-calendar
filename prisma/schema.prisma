@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model IntegrationAccount {
+  id             String            @id @default(cuid())
+  provider       String
+  email          String
+  accessToken    String
+  refreshToken   String?
+  scope          String?
+  tokenExpiresAt DateTime?
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  events         CalendarEvent[]
+  watches        CalendarWatch[]
+  webhookLogs    WebhookLog[]
+
+  @@index([provider])
+  @@unique([provider, email])
+}
+
+model CalendarEvent {
+  id               String             @id @default(cuid())
+  provider         String
+  providerEventId  String
+  calendarId       String
+  integrationId    String
+  summary          String?
+  description      String?
+  status           String?
+  location         String?
+  startTime        DateTime?
+  endTime          DateTime?
+  updatedAtRemote  DateTime?
+  hangoutLink      String?
+  rawPayload       Json?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  integration      IntegrationAccount @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([providerEventId, calendarId])
+  @@index([integrationId])
+}
+
+model CalendarWatch {
+  id               String             @id @default(cuid())
+  provider         String
+  googleChannelId  String?            @unique
+  calendarId       String
+  resourceId       String?
+  integrationId    String
+  expiry           DateTime?
+  status           String            @default("active")
+  metadata         Json?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  integration      IntegrationAccount @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([calendarId, integrationId])
+}
+
+model WebhookLog {
+  id             String             @id @default(cuid())
+  provider       String
+  eventType      String?
+  channelId      String?
+  resourceId     String?
+  integrationId  String?
+  payload        Json?
+  receivedAt     DateTime           @default(now())
+  integration    IntegrationAccount? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+}
