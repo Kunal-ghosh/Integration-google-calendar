@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M32 Google Calendar Integration</title>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #1f2933;
+        background: #f5f7fa;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+
+      main {
+        background: #fff;
+        width: min(640px, 100%);
+        border-radius: 16px;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.15);
+        padding: 2rem 2.5rem;
+      }
+
+      h1 {
+        margin-top: 0;
+        font-size: 1.75rem;
+      }
+
+      fieldset {
+        border: none;
+        padding: 0;
+        margin: 0 0 1.5rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      label {
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      input,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      textarea,
+      select {
+        border: 1px solid #cbd5f5;
+        border-radius: 10px;
+        padding: 0.65rem 0.85rem;
+        transition: border 120ms ease;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #5b21b6;
+        box-shadow: 0 0 0 2px rgba(91, 33, 182, 0.12);
+      }
+
+      .inline {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-weight: 500;
+      }
+
+      button {
+        width: 100%;
+        padding: 0.85rem;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(120deg, #5b21b6, #9333ea);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 120ms ease, transform 120ms ease;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      button:not(:disabled):hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      .status {
+        margin-top: 1rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .card {
+        margin-top: 1rem;
+        padding: 1.25rem;
+        border-radius: 14px;
+        background: #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .card-link {
+        word-break: break-all;
+        font-weight: 500;
+        color: #0f172a;
+      }
+
+      .copy-button {
+        align-self: flex-start;
+        border: none;
+        border-radius: 8px;
+        padding: 0.45rem 0.9rem;
+        background: #0f172a;
+        color: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        transition: opacity 120ms ease;
+      }
+
+      .copy-button:hover {
+        opacity: 0.85;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Create Google Calendar Event</h1>
+      <p>
+        Use this helper to call the backend <code>POST /events</code> endpoint. Make sure you have already connected your Google
+        account via the OAuth flow.
+      </p>
+      <form id="eventForm">
+        <fieldset>
+          <label>
+            Calendar ID
+            <input type="text" name="calendarId" value="primary" required />
+          </label>
+          <label>
+            Summary
+            <input type="text" name="summary" placeholder="Weekly sync" required />
+          </label>
+          <label>
+            Description
+            <textarea name="description" rows="3" placeholder="Agenda, notes, etc."></textarea>
+          </label>
+          <label>
+            Location
+            <input type="text" name="location" placeholder="Google Meet / Office" />
+          </label>
+          <label>
+            Start (local time)
+            <input type="datetime-local" name="start" required />
+          </label>
+          <label>
+            End (local time)
+            <input type="datetime-local" name="end" required />
+          </label>
+          <label>
+            Attendees (comma-separated emails)
+            <input type="text" name="attendees" placeholder="user1@example.com, user2@example.com" />
+          </label>
+          <label class="inline">
+            <input type="checkbox" name="meetLink" />
+            Generate Google Meet link
+          </label>
+        </fieldset>
+        <button type="submit">Create Event</button>
+      </form>
+
+      <div class="status" id="status"></div>
+      <div class="card" id="meetingCard" hidden>
+        <p class="card-title">Meeting Link</p>
+        <p class="card-link" id="meetingLink"></p>
+        <button class="copy-button" id="copyButton" type="button">Copy link</button>
+      </div>
+    </main>
+
+    <script>
+      const form = document.getElementById("eventForm");
+      const statusEl = document.getElementById("status");
+      const resultCard = document.getElementById("meetingCard");
+      const linkEl = document.getElementById("meetingLink");
+      const copyBtn = document.getElementById("copyButton");
+
+      const toISO = (value) => {
+        if (!value) return undefined;
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return undefined;
+        return date.toISOString();
+      };
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        statusEl.textContent = "Submitting...";
+        resultCard.hidden = true;
+        form.querySelector("button[type='submit']").disabled = true;
+
+        const formData = new FormData(form);
+        const attendees = (formData.get("attendees") || "")
+          .split(",")
+          .map((email) => email.trim())
+          .filter(Boolean)
+          .map((email) => ({ email }));
+
+        const payload = {
+          calendarId: formData.get("calendarId") || undefined,
+          summary: formData.get("summary"),
+          description: formData.get("description") || undefined,
+          location: formData.get("location") || undefined,
+          start: { dateTime: toISO(formData.get("start")) },
+          end: { dateTime: toISO(formData.get("end")) },
+          attendees: attendees.length ? attendees : undefined,
+          meetLink: formData.get("meetLink") === "on",
+        };
+
+        try {
+          const response = await fetch("/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data?.error?.message || data?.message || "Failed to create event");
+          }
+          const meetingLink =
+            data?.event?.hangoutLink ||
+            data?.event?.htmlLink ||
+            data?.event?.conferenceData?.entryPoints?.[0]?.uri ||
+            "No meeting link returned.";
+
+          statusEl.textContent = "Event created successfully!";
+          linkEl.textContent = meetingLink;
+          copyBtn.disabled = meetingLink.startsWith("No ");
+          resultCard.hidden = false;
+          form.reset();
+        } catch (error) {
+          statusEl.textContent = `Error: ${error.message}`;
+          resultCard.hidden = true;
+        } finally {
+          form.querySelector("button[type='submit']").disabled = false;
+        }
+      });
+
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(linkEl.textContent);
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => (copyBtn.textContent = "Copy link"), 1500);
+        } catch {
+          copyBtn.textContent = "Copy failed";
+          setTimeout(() => (copyBtn.textContent = "Copy link"), 1500);
+        }
+      });
+    </script>
+  </body>
+</html>
+

@@ -133,6 +133,10 @@ Tokens are refreshed automatically whenever they are near expiry using Google’
 | `POST /webhook/google` | Receive Google push notifications |
 | `POST /webhook/google/watch` | Register a webhook watch for a calendar (requires public HTTPS endpoint) |
 
+### Simple Frontend Helper
+
+Visit `http://localhost:4000/` to load a lightweight form bundled in `public/index.html`. It calls `POST /events` under the hood so you can create calendar events without crafting JSON manually.
+
 ### Example: List events
 
 ```bash
