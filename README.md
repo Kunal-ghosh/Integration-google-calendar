@@ -12,7 +12,7 @@ Backend microservice that connects to Google Calendar via OAuth2, syncs events i
 
 ui 
 
-<img src="./assets/ui.png" alt="Google Calendar Integration UI" width="700"/>
+<img src="./assets/ui.png" alt="Google Calendar Integration UI" width="500"/>
 
 ## Architecture
 
