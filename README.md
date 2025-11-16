@@ -382,6 +382,3 @@ Set `BASE_URL=http://localhost:4000` for local testing or your HTTPS tunnel (ngr
      -H "X-Goog-Resource-State: exists" \
      -d '{"test":"payload"}'
    ```
-
-This documentation, combined with the earlier quick-start instructions, should equip another engineer to onboard, operate, and extend the service without additional context.
-
