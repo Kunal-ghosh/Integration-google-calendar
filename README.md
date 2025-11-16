@@ -10,6 +10,10 @@ Backend microservice that connects to Google Calendar via OAuth2, syncs events i
 - REST API for listing and creating events from the local cache (`/events`), including optional filters and Google Meet link creation.
 - Modular TypeScript structure (Express + Prisma) with structured logging (Pino) and strict Zod validation on all inputs.
 
+ui 
+
+<img src="./assets/ui.png" alt="Google Calendar Integration UI" width="700"/>
+
 ## Architecture
 
 ```
